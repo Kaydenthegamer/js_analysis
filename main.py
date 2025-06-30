@@ -3,8 +3,6 @@ import requests
 from bs4 import BeautifulSoup
 import google.generativeai as genai
 from urllib.parse import urljoin
-import socket
-import socks
 import webbrowser
 import markdown2
 import time
@@ -52,17 +50,17 @@ def chunk_string(string, length):
 
 def analyze_js_with_gemini(config, js_code):
     """使用Gemini API分析JavaScript代码，支持分块"""
-    original_socket = socket.socket
-    proxy_applied = False
+    proxy_set = False
     try:
-        # 检查并应用SOCKS5代理
-        if config.has_section('Proxy') and config.get('Proxy', 'type', fallback='').lower() == 'socks5':
-            proxy_host = config.get('Proxy', 'host')
-            proxy_port = int(config.get('Proxy', 'port'))
-            # rdns=True 表示在代理服务器端执行DNS解析
-            socks.set_default_proxy(socks.SOCKS5, proxy_host, proxy_port, rdns=True)
-            socket.socket = socks.socksocket
-            proxy_applied = True
+        # 为gRPC设置代理 (google-generativeai 使用 gRPC)
+        if config.has_section('Proxy') and config.get('Proxy', 'type', fallback=''):
+            proxy_type = config.get('Proxy', 'type')
+            host = config.get('Proxy', 'host')
+            port = config.get('Proxy', 'port')
+            # grpcio 库会识别 'https_proxy' (全小写) 环境变量
+            proxy_url = f"{proxy_type}://{host}:{port}"
+            os.environ['https_proxy'] = proxy_url
+            proxy_set = True
 
         # 配置Gemini
         api_key = config.get('Gemini', 'api_key')
@@ -116,9 +114,9 @@ def analyze_js_with_gemini(config, js_code):
         print(f"调用Gemini API时出错: {e}")
         return None
     finally:
-        # 无论成功或失败，都恢复原始的socket设置
-        if proxy_applied:
-            socket.socket = original_socket
+        # 清理环境变量，以免影响其他可能的网络调用
+        if proxy_set:
+            del os.environ['https_proxy']
 
 def main():
     """主函数"""
