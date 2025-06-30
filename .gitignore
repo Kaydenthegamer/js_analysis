@@ -15,3 +15,7 @@ venv/
 # IDE/编辑器特定文件
 .vscode/
 .idea/
+
+# 报告文件
+*.html
+reports/

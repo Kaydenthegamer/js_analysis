@@ -8,6 +8,7 @@ import socks
 import webbrowser
 import markdown2
 import time
+import os
 
 def load_config(filename="config.ini"):
     """从 .ini 文件加载配置"""
@@ -194,7 +195,11 @@ def main():
                 </html>
                 """
                 
-                report_filename = f"report_{int(time.time())}.html"
+                # 创建reports目录（如果不存在）
+                if not os.path.exists('reports'):
+                    os.makedirs('reports')
+                
+                report_filename = os.path.join('reports', f"report_{int(time.time())}.html")
                 with open(report_filename, "w", encoding="utf-8") as f:
                     f.write(html_template)
                 
