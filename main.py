@@ -7,6 +7,11 @@ import webbrowser
 import markdown2
 import time
 import os
+import urllib3
+from urllib3.exceptions import InsecureRequestWarning
+
+# 禁用SSL警告 - 注意：这会降低安全性，仅在开发/测试环境使用
+urllib3.disable_warnings(InsecureRequestWarning)
 
 def load_config(filename="config.ini"):
     """从 .ini 文件加载配置"""
