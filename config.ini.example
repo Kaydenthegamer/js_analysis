@@ -1,15 +1,14 @@
 [Gemini]
 api_key = YOUR_GEMINI_API_KEY_HERE
-# 推荐使用有免费额度的模型，例如 gemini-1.5-flash
-model = gemini-1.5-flash
+model = gemini-2.5-flash
 # 单个代码块发送给Gemini的最大字符数
-max_chunk_size = 15000
+max_chunk_size = 100000
 
 [Proxy]
 # 代理类型, "socks5" 或 "http". 如果不需要代理，请留空.
 type = socks5
 host = 127.0.0.1
-port = 1080
+port = 8081
 
 [Prompt]
 # 在这里定义你的自定义提示词。
