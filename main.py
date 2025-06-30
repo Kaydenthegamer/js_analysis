@@ -67,7 +67,24 @@ def format_file_size(size_bytes):
         return f"{size:.1f} {size_names[i]}"
 
 def get_js_file_size(url):
-    """获取JavaScript文件的大小，使用反爬虫措施"""
+    """获取JavaScript文件的大小"""
+    try:
+        # 使用HEAD请求先尝试获取Content-Length
+        response = requests.head(url, timeout=10, verify=False)
+        content_length = response.headers.get('content-length')
+        if content_length:
+            return int(content_length)
+        
+        # 如果HEAD请求没有返回Content-Length，则使用GET请求
+        response = requests.get(url, timeout=10, verify=False)
+        response.raise_for_status()
+        return len(response.content)
+    except Exception as e:
+        print(f"获取文件大小时出错 ({url}): {e}")
+        return 0
+
+def get_js_urls_from_page(url):
+    """从给定的URL中提取所有JavaScript文件的URL，并获取文件大小"""
     try:
         headers = get_random_headers()
         
@@ -97,7 +114,6 @@ def get_js_urls_from_page(url):
         response.raise_for_status()
         soup = BeautifulSoup(response.text, 'html.parser')
         js_files = []
-        
         for script_tag in soup.find_all('script', src=True):
             js_url = script_tag.get('src')
             # 确保js_url是字符串
@@ -105,11 +121,7 @@ def get_js_urls_from_page(url):
                 # 将相对URL转换为绝对URL
                 absolute_js_url = urljoin(url, js_url)
                 print(f"  正在获取文件大小: {absolute_js_url}")
-                
-                # 添加随机延迟，避免请求过于频繁
-                time.sleep(random.uniform(0.3, 1.5))
                 file_size = get_js_file_size(absolute_js_url)
-                
                 js_files.append({
                     'url': absolute_js_url,
                     'size': file_size,
