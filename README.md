@@ -1,6 +1,6 @@
-# AI-Powered JavaScript Security Analyzer
+# JS 安全漏洞分析 by Gemini AI
 
-这是一个使用 Google Gemini API 对网站的 JavaScript 文件进行安全分析的 Python 工具。它可以帮助开发者和安全研究人员快速识别 JS 代码中潜在的安全漏洞、敏感信息泄露和恶意行为。
+这是一个使用 Google Gemini API 对网站的 JavaScript 文件进行安全分析的 Python 工具。它可以帮助开发者和安全研究人员快速识别 JS 代码中潜在的安全漏洞。
 
 ## 核心功能
 
