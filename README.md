@@ -31,8 +31,8 @@
 
 1.  **克隆仓库**:
     ```bash
-    git clone <repository_url>
-    cd <repository_directory>
+    git clone https://github.com/Xc1Ym/js_analysis
+    cd js_analysis
     ```
 
 2.  **安装依赖**:
@@ -70,7 +70,7 @@ python main.py
     - `max_chunk_size`: 发送给 API 的单个代码块的最大字符数。
 
 - **[Proxy]**
-    - `type`: 代理类型, "socks5" 或 "http"。如果不需要代理，请留空。
+    - `type`: 代理类型, "http"。如果不需要代理，请留空。
     - `host`: 代理服务器地址。
     - `port`: 代理服务器端口。
 
