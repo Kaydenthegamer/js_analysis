@@ -5,8 +5,8 @@ model = gemini-2.5-flash
 max_chunk_size = 100000
 
 [Proxy]
-# 代理类型, "socks5" 或 "http". 如果不需要代理，请留空.
-type = socks5
+# 代理类型, "http". 如果不需要代理，请留空.
+type = http
 host = 127.0.0.1
 port = 8081
 
