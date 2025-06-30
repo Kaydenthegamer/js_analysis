@@ -125,8 +125,26 @@ def main():
     for i, url in enumerate(js_urls, 1):
         print(f"  {i}. {url}")
 
-    for i, js_url in enumerate(js_urls, 1):
-        print(f"\n[2] 正在分析第 {i}/{len(js_urls)} 个JS文件: {js_url}")
+    # 让用户选择要分析的文件
+    while True:
+        choice = input("\n请输入要分析的JS文件编号 (用逗号分隔, 或输入 'all' 分析全部): ").strip().lower()
+        if choice == 'all':
+            selected_indices = range(len(js_urls))
+            break
+        else:
+            try:
+                selected_indices = [int(i.strip()) - 1 for i in choice.split(',')]
+                if all(0 <= i < len(js_urls) for i in selected_indices):
+                    break
+                else:
+                    print("错误: 输入的编号超出范围，请重新输入。")
+            except ValueError:
+                print("错误: 输入无效，请输入数字编号。")
+
+    # 分析选定的文件
+    for index in selected_indices:
+        js_url = js_urls[index]
+        print(f"\n[2] 正在分析选定的文件: {js_url}")
         js_content = get_js_content(js_url)
         
         if js_content:
