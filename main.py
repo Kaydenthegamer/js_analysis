@@ -9,9 +9,37 @@ import time
 import os
 import urllib3
 from urllib3.exceptions import InsecureRequestWarning
+import random
 
 # 禁用SSL警告 - 注意：这会降低安全性，仅在开发/测试环境使用
 urllib3.disable_warnings(InsecureRequestWarning)
+
+# 常见的用户代理列表，模拟真实浏览器
+USER_AGENTS = [
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Edge/120.0.0.0 Safari/537.36'
+]
+
+def get_random_headers():
+    """生成随机的HTTP请求头，模拟真实浏览器"""
+    return {
+        'User-Agent': random.choice(USER_AGENTS),
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'DNT': '1',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Sec-Fetch-User': '?1',
+        'Cache-Control': 'max-age=0'
+    }
 
 def load_config(filename="config.ini"):
     """从 .ini 文件加载配置"""
@@ -20,31 +48,88 @@ def load_config(filename="config.ini"):
     config.read(filename, encoding='utf-8')
     return config
 
-def get_js_urls_from_page(url):
-    """从给定的URL中提取所有JavaScript文件的URL"""
+def format_file_size(size_bytes):
+    """将字节数转换为人类可读的格式"""
+    if size_bytes == 0:
+        return "0 B"
+    
+    size_names = ["B", "KB", "MB", "GB", "TB"]
+    i = 0
+    size = float(size_bytes)
+    
+    while size >= 1024.0 and i < len(size_names) - 1:
+        size /= 1024.0
+        i += 1
+    
+    if i == 0:  # 字节数
+        return f"{int(size)} {size_names[i]}"
+    else:
+        return f"{size:.1f} {size_names[i]}"
+
+def get_js_file_size(url):
+    """获取JavaScript文件的大小，使用反爬虫措施"""
     try:
-        # 禁用SSL证书验证，忽略自签证书和过期证书问题
-        response = requests.get(url, timeout=15, verify=False)
+        headers = get_random_headers()
+        
+        # 使用HEAD请求先尝试获取Content-Length
+        response = requests.head(url, timeout=10, verify=False, headers=headers)
+        content_length = response.headers.get('content-length')
+        if content_length:
+            return int(content_length)
+        
+        # 如果HEAD请求没有返回Content-Length，则使用GET请求
+        # 添加随机延迟，模拟人类行为
+        time.sleep(random.uniform(0.5, 2.0))
+        response = requests.get(url, timeout=10, verify=False, headers=headers)
+        response.raise_for_status()
+        return len(response.content)
+    except Exception as e:
+        print(f"获取文件大小时出错 ({url}): {e}")
+        return 0
+
+def get_js_urls_from_page(url):
+    """从给定的URL中提取所有JavaScript文件的URL，并获取文件大小"""
+    try:
+        headers = get_random_headers()
+        
+        # 禁用SSL证书验证，忽略自签证书和过期证书问题，使用随机User-Agent
+        response = requests.get(url, timeout=15, verify=False, headers=headers)
         response.raise_for_status()
         soup = BeautifulSoup(response.text, 'html.parser')
-        js_urls = []
+        js_files = []
+        
         for script_tag in soup.find_all('script', src=True):
             js_url = script_tag.get('src')
             # 确保js_url是字符串
             if isinstance(js_url, str):
                 # 将相对URL转换为绝对URL
                 absolute_js_url = urljoin(url, js_url)
-                js_urls.append(absolute_js_url)
-        return js_urls
+                print(f"  正在获取文件大小: {absolute_js_url}")
+                
+                # 添加随机延迟，避免请求过于频繁
+                time.sleep(random.uniform(0.3, 1.5))
+                file_size = get_js_file_size(absolute_js_url)
+                
+                js_files.append({
+                    'url': absolute_js_url,
+                    'size': file_size,
+                    'size_formatted': format_file_size(file_size)
+                })
+        return js_files
     except requests.RequestException as e:
         print(f"获取页面内容时出错: {e}")
         return []
 
 def get_js_content(url):
-    """获取单个JS文件的内容"""
+    """获取单个JS文件的内容，使用反爬虫措施"""
     try:
-        # 禁用SSL证书验证，忽略自签证书和过期证书问题
-        response = requests.get(url, timeout=15, verify=False)
+        headers = get_random_headers()
+        
+        # 添加随机延迟，模拟人类行为
+        time.sleep(random.uniform(1.0, 3.0))
+        
+        # 禁用SSL证书验证，忽略自签证书和过期证书问题，使用随机User-Agent
+        response = requests.get(url, timeout=15, verify=False, headers=headers)
         response.raise_for_status()
         return response.text
     except requests.RequestException as e:
@@ -141,26 +226,26 @@ def main():
     target_url = input("请输入要分析的网站URL: ")
     
     print(f"\n[1] 正在从 {target_url} 提取JS文件链接...")
-    js_urls = get_js_urls_from_page(target_url)
+    js_files = get_js_urls_from_page(target_url)
     
-    if not js_urls:
+    if not js_files:
         print("未能找到任何JS文件链接。")
         return
         
-    print(f"找到 {len(js_urls)} 个JS文件链接:")
-    for i, url in enumerate(js_urls, 1):
-        print(f"  {i}. {url}")
+    print(f"找到 {len(js_files)} 个JS文件链接:")
+    for i, js_file in enumerate(js_files, 1):
+        print(f"  {i}. {js_file['url']} [{js_file['size_formatted']}]")
 
     # 让用户选择要分析的文件
     while True:
         choice = input("\n请输入要分析的JS文件编号 (用逗号分隔, 或输入 'all' 分析全部): ").strip().lower()
         if choice == 'all':
-            selected_indices = range(len(js_urls))
+            selected_indices = range(len(js_files))
             break
         else:
             try:
                 selected_indices = [int(i.strip()) - 1 for i in choice.split(',')]
-                if all(0 <= i < len(js_urls) for i in selected_indices):
+                if all(0 <= i < len(js_files) for i in selected_indices):
                     break
                 else:
                     print("错误: 输入的编号超出范围，请重新输入。")
@@ -169,8 +254,9 @@ def main():
 
     # 分析选定的文件
     for index in selected_indices:
-        js_url = js_urls[index]
-        print(f"\n[2] 正在分析选定的文件: {js_url}")
+        js_file = js_files[index]
+        js_url = js_file['url']
+        print(f"\n[2] 正在分析选定的文件: {js_url} [{js_file['size_formatted']}]")
         js_content = get_js_content(js_url)
         
         if js_content:
