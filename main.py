@@ -59,7 +59,8 @@ def analyze_js_with_gemini(config, js_code):
         if config.has_section('Proxy') and config.get('Proxy', 'type', fallback='').lower() == 'socks5':
             proxy_host = config.get('Proxy', 'host')
             proxy_port = int(config.get('Proxy', 'port'))
-            socks.set_default_proxy(socks.SOCKS5, proxy_host, proxy_port)
+            # rdns=True 表示在代理服务器端执行DNS解析
+            socks.set_default_proxy(socks.SOCKS5, proxy_host, proxy_port, rdns=True)
             socket.socket = socks.socksocket
             proxy_applied = True
 
