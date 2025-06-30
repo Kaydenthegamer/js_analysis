@@ -42,8 +42,12 @@ def get_js_content(url):
         print(f"下载JS文件时出错 ({url}): {e}")
         return None
 
+def chunk_string(string, length):
+    """将字符串按指定长度分割"""
+    return (string[0+i:length+i] for i in range(0, len(string), length))
+
 def analyze_js_with_gemini(config, js_code):
-    """使用Gemini API分析JavaScript代码"""
+    """使用Gemini API分析JavaScript代码，支持分块"""
     original_socket = socket.socket
     proxy_applied = False
     try:
@@ -55,10 +59,12 @@ def analyze_js_with_gemini(config, js_code):
             socket.socket = socks.socksocket
             proxy_applied = True
 
-        # 配置并调用Gemini API
+        # 配置Gemini
         api_key = config.get('Gemini', 'api_key')
         model_name = config.get('Gemini', 'model')
+        max_chunk_size = config.getint('Gemini', 'max_chunk_size', fallback=15000)
         prompt_template = config.get('Prompt', 'custom_prompt')
+        chunk_prompt_template = config.get('Prompt', 'chunk_prompt')
 
         if not api_key or api_key == "YOUR_GEMINI_API_KEY":
             print("错误: 请在 config.ini 文件中配置您的Gemini API key。")
@@ -67,10 +73,32 @@ def analyze_js_with_gemini(config, js_code):
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel(model_name)
         
-        prompt = prompt_template.format(js_code=js_code)
-        
-        response = model.generate_content(prompt)
-        return response.text
+        # 检查是否需要分块
+        if len(js_code) <= max_chunk_size:
+            # 不分块
+            prompt = prompt_template.format(js_code=js_code)
+            response = model.generate_content(prompt)
+            return response.text
+        else:
+            # 分块处理
+            print(f"  代码过长 ({len(js_code)} 字符)，将分块发送...")
+            chunks = list(chunk_string(js_code, max_chunk_size))
+            full_analysis = []
+            
+            # 处理第一块
+            print(f"  正在分析第 1/{len(chunks)} 块...")
+            first_prompt = prompt_template.format(js_code=chunks[0])
+            response = model.generate_content(first_prompt)
+            full_analysis.append(response.text)
+            
+            # 处理后续块
+            for i, chunk in enumerate(chunks[1:], start=2):
+                print(f"  正在分析第 {i}/{len(chunks)} 块...")
+                next_prompt = chunk_prompt_template.format(js_code=chunk)
+                response = model.generate_content(next_prompt)
+                full_analysis.append(response.text)
+            
+            return "\n\n--- 分块分析结果 ---\n\n".join(full_analysis)
 
     except Exception as e:
         print(f"调用Gemini API时出错: {e}")
