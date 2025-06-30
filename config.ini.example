@@ -1,0 +1,18 @@
+[Gemini]
+api_key = YOUR_GEMINI_API_KEY_HERE
+model = gemini-1.5-flash
+# 单个代码块发送给Gemini的最大字符数
+max_chunk_size = 15000
+
+[Proxy]
+# 代理类型, "socks5" 或 "http". 如果不需要代理，请留空.
+type = socks5
+host = 127.0.0.1
+port = 1080
+
+[Prompt]
+# 在这里定义你的自定义提示词。
+# 使用 {js_code} 作为占位符，它将被替换为实际的 JavaScript 代码。
+custom_prompt = "你是一个资深前端安全专家，请分析以下JavaScript代码，并找出其中可能存在的安全漏洞、敏感信息泄露、以及恶意行为。这是代码的第一部分（或全部）。请以中文返回分析结果。代码如下：\n\n{js_code}"
+# 当代码被分块时，用于后续块的提示词。
+chunk_prompt = "这是同一个JavaScript文件的后续部分，请继续你的分析。代码片段如下：\n\n{js_code}"
