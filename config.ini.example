@@ -5,10 +5,11 @@ model = gemini-2.5-flash
 max_chunk_size = 100000
 
 [Proxy]
-# 代理类型, "http". 如果不需要代理，请留空.
+# 代理类型, "http" 或 "https"。如果不需要代理，请留空。
+# 注意：Gemini API (gRPC) 通常通过 HTTP/HTTPS 代理工作，而不是 SOCKS5。
 type = http
 host = 127.0.0.1
-port = 8081
+port = 1080
 
 [Prompt]
 # 在这里定义你的自定义提示词。
