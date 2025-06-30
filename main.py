@@ -3,7 +3,8 @@ import requests
 from bs4 import BeautifulSoup
 import google.generativeai as genai
 from urllib.parse import urljoin
-import os
+import socket
+import socks
 
 def load_config(filename="config.ini"):
     """从 .ini 文件加载配置"""
@@ -11,18 +12,6 @@ def load_config(filename="config.ini"):
     # 指定UTF-8编码以正确读取包含中文字符的配置文件
     config.read(filename, encoding='utf-8')
     return config
-
-def get_proxy_config(config):
-    """获取代理配置"""
-    if config.has_section('Proxy') and config.get('Proxy', 'type'):
-        proxy_type = config.get('Proxy', 'type')
-        host = config.get('Proxy', 'host')
-        port = config.get('Proxy', 'port')
-        return {
-            "http": f"{proxy_type}://{host}:{port}",
-            "https": f"{proxy_type}://{host}:{port}"
-        }
-    return None
 
 def get_js_urls_from_page(url):
     """从给定的URL中提取所有JavaScript文件的URL"""
@@ -55,37 +44,41 @@ def get_js_content(url):
 
 def analyze_js_with_gemini(config, js_code):
     """使用Gemini API分析JavaScript代码"""
-    # 为Gemini API调用设置代理
-    proxy_config = get_proxy_config(config)
-    if proxy_config:
-        os.environ['HTTPS_PROXY'] = proxy_config['https']
-        os.environ['HTTP_PROXY'] = proxy_config['http']
-
-    api_key = config.get('Gemini', 'api_key')
-    model_name = config.get('Gemini', 'model')
-    prompt_template = config.get('Prompt', 'custom_prompt')
-
-    if not api_key or api_key == "YOUR_GEMINI_API_KEY":
-        print("错误: 请在 config.ini 文件中配置您的Gemini API key。")
-        return None
-
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel(model_name)
-    
-    prompt = prompt_template.format(js_code=js_code)
-    
+    original_socket = socket.socket
+    proxy_applied = False
     try:
+        # 检查并应用SOCKS5代理
+        if config.has_section('Proxy') and config.get('Proxy', 'type', fallback='').lower() == 'socks5':
+            proxy_host = config.get('Proxy', 'host')
+            proxy_port = int(config.get('Proxy', 'port'))
+            socks.set_default_proxy(socks.SOCKS5, proxy_host, proxy_port)
+            socket.socket = socks.socksocket
+            proxy_applied = True
+
+        # 配置并调用Gemini API
+        api_key = config.get('Gemini', 'api_key')
+        model_name = config.get('Gemini', 'model')
+        prompt_template = config.get('Prompt', 'custom_prompt')
+
+        if not api_key or api_key == "YOUR_GEMINI_API_KEY":
+            print("错误: 请在 config.ini 文件中配置您的Gemini API key。")
+            return None
+
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel(model_name)
+        
+        prompt = prompt_template.format(js_code=js_code)
+        
         response = model.generate_content(prompt)
         return response.text
+
     except Exception as e:
         print(f"调用Gemini API时出错: {e}")
         return None
     finally:
-        # 清理环境变量，以免影响其他可能的网络调用
-        if 'HTTPS_PROXY' in os.environ:
-            del os.environ['HTTPS_PROXY']
-        if 'HTTP_PROXY' in os.environ:
-            del os.environ['HTTP_PROXY']
+        # 无论成功或失败，都恢复原始的socket设置
+        if proxy_applied:
+            socket.socket = original_socket
 
 def main():
     """主函数"""
