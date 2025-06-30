@@ -1,5 +1,6 @@
 [Gemini]
 api_key = YOUR_GEMINI_API_KEY_HERE
+# 推荐使用有免费额度的模型，例如 gemini-1.5-flash
 model = gemini-1.5-flash
 # 单个代码块发送给Gemini的最大字符数
 max_chunk_size = 15000
