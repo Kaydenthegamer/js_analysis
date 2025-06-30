@@ -5,6 +5,9 @@ import google.generativeai as genai
 from urllib.parse import urljoin
 import socket
 import socks
+import webbrowser
+import markdown2
+import time
 
 def load_config(filename="config.ini"):
     """从 .ini 文件加载配置"""
@@ -158,8 +161,45 @@ def main():
             print("[3] 已获取JS代码，正在发送到Gemini进行分析...")
             analysis_result = analyze_js_with_gemini(config, js_content)
             if analysis_result:
-                print("\n--- Gemini分析结果 ---")
-                print(analysis_result)
+                print("[4] 分析完成，正在生成HTML报告...")
+                html_content = markdown2.markdown(analysis_result, extras=["fenced-code-blocks", "tables"])
+                
+                # 添加一些CSS样式
+                html_template = f"""
+                <!DOCTYPE html>
+                <html lang="zh-CN">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>JS代码安全分析报告</title>
+                    <style>
+                        body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; line-height: 1.6; margin: 2em; background-color: #f9f9f9; color: #333; }}
+                        .container {{ max-width: 800px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
+                        h1, h2, h3 {{ color: #2c3e50; }}
+                        code {{ background-color: #eee; padding: 2px 4px; border-radius: 4px; font-family: "Courier New", Courier, monospace; }}
+                        pre {{ background-color: #2d2d2d; color: #f8f8f2; padding: 1em; border-radius: 5px; overflow-x: auto; }}
+                        pre code {{ background-color: transparent; padding: 0; }}
+                        table {{ border-collapse: collapse; width: 100%; margin-bottom: 1em; }}
+                        th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
+                        th {{ background-color: #f2f2f2; }}
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <h1>JS代码安全分析报告</h1>
+                        <h2>分析对象: {js_url}</h2>
+                        <hr>
+                        {html_content}
+                    </div>
+                </body>
+                </html>
+                """
+                
+                report_filename = f"report_{int(time.time())}.html"
+                with open(report_filename, "w", encoding="utf-8") as f:
+                    f.write(html_template)
+                
+                print(f"[5] 报告已生成: {report_filename}")
+                webbrowser.open(report_filename)
                 print("--- 分析结束 ---\n")
             else:
                 print("未能获取分析结果。")
