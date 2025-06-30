@@ -7,7 +7,8 @@ from urllib.parse import urljoin
 def load_config(filename="config.ini"):
     """从 .ini 文件加载配置"""
     config = configparser.ConfigParser()
-    config.read(filename)
+    # 指定UTF-8编码以正确读取包含中文字符的配置文件
+    config.read(filename, encoding='utf-8')
     return config
 
 def get_proxy_config(config):
