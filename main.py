@@ -18,7 +18,8 @@ def load_config(filename="config.ini"):
 def get_js_urls_from_page(url):
     """从给定的URL中提取所有JavaScript文件的URL"""
     try:
-        response = requests.get(url, timeout=15)
+        # 禁用SSL证书验证，忽略自签证书和过期证书问题
+        response = requests.get(url, timeout=15, verify=False)
         response.raise_for_status()
         soup = BeautifulSoup(response.text, 'html.parser')
         js_urls = []
@@ -37,7 +38,8 @@ def get_js_urls_from_page(url):
 def get_js_content(url):
     """获取单个JS文件的内容"""
     try:
-        response = requests.get(url, timeout=15)
+        # 禁用SSL证书验证，忽略自签证书和过期证书问题
+        response = requests.get(url, timeout=15, verify=False)
         response.raise_for_status()
         return response.text
     except requests.RequestException as e:
@@ -61,6 +63,10 @@ def analyze_js_with_gemini(config, js_code):
             proxy_url = f"{proxy_type}://{host}:{port}"
             os.environ['https_proxy'] = proxy_url
             proxy_set = True
+        
+        # 禁用gRPC的SSL验证以忽略证书问题
+        os.environ['GRPC_SSL_CIPHER_SUITES'] = 'HIGH+ECDSA'
+        os.environ['PYTHONHTTPSVERIFY'] = '0'
 
         # 配置Gemini
         api_key = config.get('Gemini', 'api_key')
@@ -117,6 +123,11 @@ def analyze_js_with_gemini(config, js_code):
         # 清理环境变量，以免影响其他可能的网络调用
         if proxy_set:
             del os.environ['https_proxy']
+        # 清理SSL相关环境变量
+        if 'GRPC_SSL_CIPHER_SUITES' in os.environ:
+            del os.environ['GRPC_SSL_CIPHER_SUITES']
+        if 'PYTHONHTTPSVERIFY' in os.environ:
+            del os.environ['PYTHONHTTPSVERIFY']
 
 def main():
     """主函数"""
