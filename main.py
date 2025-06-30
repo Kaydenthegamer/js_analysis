@@ -98,7 +98,14 @@ def analyze_js_with_gemini(config, js_code):
                 response = model.generate_content(next_prompt)
                 full_analysis.append(response.text)
             
-            return "\n\n--- 分块分析结果 ---\n\n".join(full_analysis)
+            # 对所有分块结果进行最终总结
+            print("  所有分块分析完成，正在进行最终总结...")
+            summary_prompt_template = config.get('Prompt', 'summary_prompt')
+            combined_reports = "\n\n--- 单独报告分割线 ---\n\n".join(full_analysis)
+            summary_prompt = summary_prompt_template.format(analysis_reports=combined_reports)
+            
+            summary_response = model.generate_content(summary_prompt)
+            return summary_response.text
 
     except Exception as e:
         print(f"调用Gemini API时出错: {e}")
